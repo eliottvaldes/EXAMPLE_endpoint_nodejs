@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Google SignIn</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS v5.2.1 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT" crossorigin="anonymous">
+
+</head>
+
+<body>
+
+    <div class="container-fluid">
+        <div class="container">
+
+            <div class="row">
+                <div class="col-12">
+                    <h1>Google SignIn</h1>                    
+                </div>
+                <hr class="mb-4">
+            </div>
+
+
+            <div class="row">
+                <div class="col-6">
+                    <div id="g_id_onload" 
+                    data-client_id="18921021-5030nu65pa52euu182dd0rbu00rlj9ol.apps.googleusercontent.com"
+                    data-auto_prompt="false" 
+                    data-callback="handleCredentialResponse">
+                    </div>
+                    <div class="g_id_signin" 
+                    data-type="standard" 
+                    data-size="large" 
+                    data-theme="outline" 
+                    data-text="sign_in_with"
+                    data-shape="rectangular" 
+                    data-logo_alignment="left">
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-6">
+                    <!-- btn to google signout -->
+                    <button id="google-signout" class="btn btn-outline-danger">
+                        Signout Google
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- GOOGLE LIBRARIES -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <script>
+        function handleCredentialResponse(response) {
+            // decodeJwtResponse() is a custom function defined by you
+            // to decode the credential response.
+            const responsePayload = decodeJwtResponse(response.credential);
+
+            console.log("ID: " + responsePayload.sub);
+            console.log('Full Name: ' + responsePayload.name);
+            console.log('Given Name: ' + responsePayload.given_name);
+            console.log('Family Name: ' + responsePayload.family_name);
+            console.log("Image URL: " + responsePayload.picture);
+            console.log("Email: " + responsePayload.email);
+
+            // save credential to server
+            const credential = { id_token: response.credential };
+            sendCredentialToServer(credential);
+
+        }
+
+
+        const decodeJwtResponse = (jwtResponse) => {
+            const jwtPayload = jwtResponse.split('.')[1];
+            const decodedJwtPayload = atob(jwtPayload);
+            return JSON.parse(decodedJwtPayload);
+        };
+        
+
+        const sendCredentialToServer = (credential) => {
+
+            const url = 'http://localhost:3000/api/auth/google';
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(credential),
+            })
+                .then(resp => resp.json())
+                .then((data) => {
+                    console.log('Success:', data);
+                    // save the email in localstorage -> we need for signout
+                    localStorage.setItem('email', data.user.email);
+                })
+                .catch((error) => {
+                    console.error(
+                        'There has been a problem with your fetch operation:',
+                        error
+                    );
+                });
+        };
+
+
+        // signout google
+            const googleSignout = document.getElementById('google-signout');
+            googleSignout.addEventListener('click', () => {
+                google.accounts.id.disableAutoSelect();
+                google.accounts.id.revoke(
+                    localStorage.getItem('email'),
+                    done => {
+                        console.log('SignOut Successfull', done);
+                        localStorage.clear();
+                        location.reload();
+                    }
+                );
+            });
+
+    </script>
+
+
+
+    <!-- Bootstrap JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"
+        integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous">
+        </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.min.js"
+        integrity="sha384-7VPbUDkoPSGFnVtYi0QogXtr74QeVeeIs99Qfg5YCF+TidwNdjvaKZX19NZ/e6oz" crossorigin="anonymous">
+        </script>
+</body>
+
+</html>
